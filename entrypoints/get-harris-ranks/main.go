@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/joho/godotenv"
 
 	h "github.com/my_projects/ff-draft-dashboard-api/harris"
 )
@@ -37,13 +40,22 @@ func Handler(ctx context.Context) (Response, error) {
 	}
 	json.HTMLEscape(&buf, body)
 
+	cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
+	flag.Parse()
+	godotenv.Load(*cfgPath)
+
+	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
+
 	resp := Response{
 		StatusCode:      200,
 		IsBase64Encoded: false,
 		Body:            buf.String(),
 		Headers: map[string]string{
-			"Content-Type":           "application/json",
-			"X-MyCompany-Func-Reply": "hello-handler",
+			"Content-Type":                     "application/json",
+			"Access-Control-Allow-Origin":      allowedOrigin,
+			"Access-Control-Allow-Credentials": "true",
+			"Access-Control-Allow-Methods":     "OPTIONS,POST,GET",
+			"Access-Control-Allow-Headers":     "Content-Type",
 		},
 	}
 
