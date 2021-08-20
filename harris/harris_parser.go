@@ -18,6 +18,7 @@ const (
 )
 
 type Player struct {
+	Id        int      `json:"id"`
 	FirstName string   `json:"firstName"`
 	LastName  string   `json:"lastName"`
 	Name      string   `json:"name"`
@@ -25,10 +26,10 @@ type Player struct {
 	Position  Position `json:"position"`
 	Team      string   `json:"team"`
 
-	ESPNRank      int `json:"espnRank"`
-	HarrisRank    int `json:"harrisRank"`
-	ESPNPPRRank   int `json:"espnPPRRank"`
-	HarrisPPRRank int `json:"harrisPPRRank"`
+	HarrisSTDRank    int `json:"harrisSTDRank,omitempty"`
+	HarrisPPRRank    int `json:"harrisPPRRank,omitempty"`
+	HarrisOVRSTDRank int `json:"harrisOVRSTDRank,omitempty"`
+	HarrisOVRPPRRank int `json:"harrisOVRPPRRank,omitempty"`
 }
 
 func CleanName(name string) (out string) {
@@ -66,14 +67,14 @@ func FindPlayer(players []*Player, matchName string) (out *Player) {
 	return
 }
 
-func ParseHarrisRanks(url string, pos Position) (players []*Player) {
+func ParseHarrisRanks(url string, pos Position, currId int, isOverallRanking bool) (players []*Player, finalId int) {
 	players = []*Player{}
 	isRankRgx := regexp.MustCompile(`^[0-9]+$`)
 	isTmRgx := regexp.MustCompile(`^[A-Z]{2,}$`)
 	isStdScrRgx := regexp.MustCompile(`(?i)standard scoring`)
 	isPprScrRgx := regexp.MustCompile(`(?i)ppr scoring`)
 
-	isPPR := false
+	rankType := "BOTH" // PPR / STD / BOTH
 	isCreate := true
 
 	c := colly.NewCollector()
@@ -94,14 +95,14 @@ func ParseHarrisRanks(url string, pos Position) (players []*Player) {
 				rank, _ = strconv.Atoi(text)
 			}
 			if isStdScrRgx.MatchString(text) {
-				isPPR = false
+				rankType = "STD"
 				if len(players) != 0 {
 					isCreate = false
 				}
 				continue
 			}
 			if isPprScrRgx.MatchString(text) {
-				isPPR = true
+				rankType = "PPR"
 				if len(players) != 0 {
 					isCreate = false
 				}
@@ -124,6 +125,7 @@ func ParseHarrisRanks(url string, pos Position) (players []*Player) {
 				}
 				if player == nil {
 					player = &Player{
+						Id:        currId,
 						Position:  pos,
 						Name:      name,
 						MatchName: matchName,
@@ -132,19 +134,28 @@ func ParseHarrisRanks(url string, pos Position) (players []*Player) {
 						Team:      team,
 					}
 					players = append(players, player)
+					currId += 1
 				}
 
-				if isPPR {
-					player.HarrisPPRRank = rank
+				if isOverallRanking {
+					if rankType == "PPR" || rankType == "BOTH" {
+						player.HarrisOVRPPRRank = rank
+					} else if rankType == "STD" || rankType == "BOTH" {
+						player.HarrisOVRSTDRank = rank
+					}
 				} else {
-					player.HarrisRank = rank
+					if rankType == "PPR" || rankType == "BOTH" {
+						player.HarrisPPRRank = rank
+					} else if rankType == "STD" || rankType == "BOTH" {
+						player.HarrisSTDRank = rank
+					}
 				}
 			}
 		}
 	})
 
 	c.Visit(url)
-	return
+	return players, currId
 }
 
 // func main() {
