@@ -94,7 +94,7 @@ func (p EspnPlayer) Position() Position {
 	case EspnTE:
 		return TE
 	default:
-		return QB
+		return NoPosition
 	}
 }
 

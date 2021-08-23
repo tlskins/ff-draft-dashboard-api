@@ -21,11 +21,15 @@ func main() {
 	}
 
 	currId := 1
-	players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/ranks-draft", t.QB, currId, players)
-	players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/wr-ranks-draft", t.WR, currId, players)
-	players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/rb-ranks-draft", t.RB, currId, players)
+	// players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/ranks-draft", t.QB, currId, players)
+	// players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/wr-ranks-draft", t.WR, currId, players)
+	// players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/rb-ranks-draft", t.RB, currId, players)
 	players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/te-ranks-draft", t.TE, currId, players)
 
 	fmt.Println(len(players))
-	spew.Dump(players[0:10])
+	for _, player := range players {
+		if t.MatchName("Travis Kelce") == player.MatchName {
+			spew.Dump(player)
+		}
+	}
 }

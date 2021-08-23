@@ -16,7 +16,6 @@ func ParseHarrisRanks(url string, pos t.Position, currId int, players []*t.Playe
 	isPprScrRgx := regexp.MustCompile(`(?i)ppr scoring`)
 
 	rankType := "BOTH" // PPR / STD / BOTH
-	isCreate := true
 
 	c := colly.NewCollector()
 	c.OnHTML("body", func(e *colly.HTMLElement) {
@@ -37,16 +36,10 @@ func ParseHarrisRanks(url string, pos t.Position, currId int, players []*t.Playe
 			}
 			if isStdScrRgx.MatchString(text) {
 				rankType = "STD"
-				if len(players) != 0 {
-					isCreate = false
-				}
 				continue
 			}
 			if isPprScrRgx.MatchString(text) {
 				rankType = "PPR"
-				if len(players) != 0 {
-					isCreate = false
-				}
 				continue
 			}
 
@@ -59,11 +52,7 @@ func ParseHarrisRanks(url string, pos t.Position, currId int, players []*t.Playe
 				continue
 			} else {
 				team = strings.TrimSpace(text)
-
-				var player *t.Player
-				if !isCreate {
-					player = t.FindPlayer(players, matchName)
-				}
+				player := t.FindPlayer(players, matchName)
 				if player == nil {
 					player = &t.Player{
 						Id:        currId,
@@ -79,9 +68,10 @@ func ParseHarrisRanks(url string, pos t.Position, currId int, players []*t.Playe
 				}
 
 				if rankType == "PPR" || rankType == "BOTH" {
-					player.HarrisPprRank = rank
-				} else if rankType == "STD" || rankType == "BOTH" {
-					player.HarrisStdRank = rank
+					player.CustomPprRank = rank
+				}
+				if rankType == "STD" || rankType == "BOTH" {
+					player.CustomStdRank = rank
 				}
 			}
 		}

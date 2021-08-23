@@ -8,10 +8,11 @@ import (
 type Position string
 
 const (
-	QB Position = "QB"
-	RB Position = "RB"
-	WR Position = "WR"
-	TE Position = "TE"
+	QB         Position = "QB"
+	RB         Position = "RB"
+	WR         Position = "WR"
+	TE         Position = "TE"
+	NoPosition Position = ""
 )
 
 type Player struct {
@@ -22,9 +23,10 @@ type Player struct {
 	MatchName string   `json:"matchName"`
 	Position  Position `json:"position"`
 	Team      string   `json:"team"`
+	Tier      string   `json:"tier"`
 
-	HarrisStdRank  int `json:"harrisStdRank,omitempty"`
-	HarrisPprRank  int `json:"harrisPprRank,omitempty"`
+	CustomStdRank  int `json:"customStdRank,omitempty"`
+	CustomPprRank  int `json:"customPprRank,omitempty"`
 	EspnOvrPprRank int `json:"espnOvrPprRank,omitempty"`
 	EspnOvrStdRank int `json:"espnOvrStdRank,omitempty"`
 	EspnAdp        int `json:"espnAdp,omitempty"`

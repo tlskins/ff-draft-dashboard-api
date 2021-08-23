@@ -21,10 +21,14 @@ func Handler(ctx context.Context) (Response, error) {
 	if err := p.HttpRequest(client, "GET", p.EspnApiUrl, p.EspnQueryHeader(250, 0), nil, &out); err != nil {
 		return Response{StatusCode: 404}, err
 	}
-	players := make([]*t.Player, len(out.Players))
+	players := []*t.Player{}
 	for i, p := range out.Players {
-		players[i] = p.ToPlayer()
-		players[i].EspnAdp = i + 1
+		player := p.ToPlayer()
+		if player.Position == t.NoPosition {
+			continue
+		}
+		player.EspnAdp = i + 1
+		players = append(players, player)
 	}
 
 	currId := 1
