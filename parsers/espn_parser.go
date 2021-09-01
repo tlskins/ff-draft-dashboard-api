@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func NewHttpClient() *http.Client {
@@ -29,14 +31,14 @@ func HttpRequest(client *http.Client, method, url string, headers map[string][]s
 			if b, err := json.Marshal(data); err == nil {
 				body = bytes.NewReader(b)
 			} else {
-				return err
+				return errors.New(fmt.Sprintf("Error marshaling request data: %v", err.Error()))
 			}
 		}
 	}
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("Error building http request: %v", err.Error()))
 	}
 	for header, values := range headers {
 		req.Header[header] = values
@@ -44,18 +46,20 @@ func HttpRequest(client *http.Client, method, url string, headers map[string][]s
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("Error sending http request: %v", err.Error()))
 	}
 
 	if out != nil {
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return err
+			return errors.New(fmt.Sprintf("Error reading response body: %v", err.Error()))
 		}
 		if len(b) > 0 {
+			fmt.Println(string(b))
 			return json.Unmarshal(b, out)
 		}
 	}
+
 	return nil
 }
 

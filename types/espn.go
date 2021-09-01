@@ -1,5 +1,7 @@
 package types
 
+import "strconv"
+
 type EspnPlayersResp struct {
 	Players []*EspnPlayer `json:"players"`
 }
@@ -171,7 +173,7 @@ func (p EspnPlayer) Team() (out string) {
 
 func (p EspnPlayer) ToPlayer() (out *Player) {
 	out = &Player{
-		Id:        p.Id,
+		Id:        strconv.Itoa(p.Id),
 		FirstName: p.Profile.FirstName,
 		LastName:  p.Profile.LastName,
 		Name:      p.Profile.FullName,

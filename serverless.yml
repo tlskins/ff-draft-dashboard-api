@@ -47,3 +47,15 @@ functions:
           cors:
             origin: ${self:custom.secrets.ALLOWED_ORIGIN}
             allowCredentials: "true"
+
+  get-fpros-ranks:
+    handler: entrypoints/get-fpros-ranks/main.go
+    environment:
+      ALLOWED_ORIGIN: ${self:custom.secrets.ALLOWED_ORIGIN}
+    events:
+      - http:
+          path: fpros-ranks
+          method: get
+          cors:
+            origin: ${self:custom.secrets.ALLOWED_ORIGIN}
+            allowCredentials: "true"
