@@ -16,7 +16,7 @@ service: ff-draft-dashboard-api
 #org: your-org-name
 
 custom:
-  secrets: ${file(config.dev.yml)}
+  secrets: ${file(config.prod.yml)}
 
 frameworkVersion: "2"
 
