@@ -55,7 +55,7 @@ func ParseHarrisRanks(url string, pos t.Position, currId int, players []*t.Playe
 				player := t.FindPlayer(players, matchName)
 				if player == nil {
 					player = &t.Player{
-						Id:        currId,
+						Id:        strconv.Itoa(currId),
 						Position:  pos,
 						Name:      name,
 						MatchName: matchName,

@@ -1,5 +1,10 @@
 package types
 
+import (
+	"strconv"
+	"strings"
+)
+
 type FproEcrData struct {
 	Sport        string        `json:"sport"`
 	Year         string        `json:"year"`
@@ -31,4 +36,21 @@ type FproPlayer struct {
 	PosRank              string  `json:"pos_rank"`
 	PlayerTeamId         string  `json:"player_team_id"`
 	PlayerPositionId     string  `json:"player_position_id"`
+}
+
+func (p FproPlayer) ToPlayer() (out *Player) {
+	names := strings.Split(p.PlayerName, " ")
+	out = &Player{
+		Id:            p.SportsDataId,
+		FirstName:     names[0],
+		LastName:      strings.Join(names[1:], " "),
+		Name:          p.PlayerName,
+		MatchName:     MatchName(p.PlayerName),
+		Position:      Position(p.PlayerPositionId),
+		Team:          p.PlayerTeamId,
+		CustomStdRank: p.RankEcr,
+		CustomPprRank: p.RankEcr,
+		Tier:          strconv.Itoa(p.Tier),
+	}
+	return
 }

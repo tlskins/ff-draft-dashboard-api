@@ -16,7 +16,7 @@ const (
 )
 
 type Player struct {
-	Id        int      `json:"id"`
+	Id        string   `json:"id"`
 	FirstName string   `json:"firstName"`
 	LastName  string   `json:"lastName"`
 	Name      string   `json:"name"`
