@@ -171,15 +171,20 @@ func (p EspnPlayer) Team() (out string) {
 
 func (p EspnPlayer) ToPlayer() (out *Player) {
 	out = &Player{
-		Id:             p.Id,
-		FirstName:      p.Profile.FirstName,
-		LastName:       p.Profile.LastName,
-		Name:           p.Profile.FullName,
-		MatchName:      MatchName(p.Profile.FullName),
-		Position:       p.Position(),
-		Team:           p.Team(),
-		EspnOvrPprRank: p.Profile.Ranks.PPR.Rank,
-		EspnOvrStdRank: p.Profile.Ranks.Standard.Rank,
+		Id:        p.Id,
+		FirstName: p.Profile.FirstName,
+		LastName:  p.Profile.LastName,
+		Name:      p.Profile.FullName,
+		MatchName: MatchName(p.Profile.FullName),
+		Position:  p.Position(),
+		Team:      p.Team(),
 	}
+	if p.Profile.Ranks != nil && p.Profile.Ranks.PPR != nil {
+		out.EspnOvrPprRank = p.Profile.Ranks.PPR.Rank
+	}
+	if p.Profile.Ranks != nil && p.Profile.Ranks.Standard != nil {
+		out.EspnOvrStdRank = p.Profile.Ranks.Standard.Rank
+	}
+
 	return
 }
