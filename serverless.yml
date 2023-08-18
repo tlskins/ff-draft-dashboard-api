@@ -1,19 +1,4 @@
-# Welcome to Serverless!
-#
-# This file is the main config file for your service.
-# It's very minimal at this point and uses default values.
-# You can always add more config options for more control.
-# We've included some commented out config examples here.
-# Just uncomment any of them to get that config option.
-#
-# For full config options, check the docs:
-#    docs.serverless.com
-#
-# Happy Coding!
-
 service: ff-draft-dashboard-api
-#app: your-app-name
-#org: your-org-name
 
 custom:
   secrets: ${file(config.dev.yml)}
@@ -27,8 +12,7 @@ provider:
   versionFunctions: false # dont store versions of all funcs
 
 plugins:
-  - serverless-go-build # dont need makefile
-
+  - serverless-go-build
 package:
   exclude:
     - ./**
@@ -48,14 +32,14 @@ functions:
             origin: ${self:custom.secrets.ALLOWED_ORIGIN}
             allowCredentials: "true"
 
-  get-fpros-ranks:
-    handler: entrypoints/get-fpros-ranks/main.go
-    environment:
-      ALLOWED_ORIGIN: ${self:custom.secrets.ALLOWED_ORIGIN}
-    events:
-      - http:
-          path: fpros-ranks
-          method: get
-          cors:
-            origin: ${self:custom.secrets.ALLOWED_ORIGIN}
-            allowCredentials: "true"
+  # get-fpros-ranks:
+  #   handler: entrypoints/get-fpros-ranks/main.go
+  #   environment:
+  #     ALLOWED_ORIGIN: ${self:custom.secrets.ALLOWED_ORIGIN}
+  #   events:
+  #     - http:
+  #         path: fpros-ranks
+  #         method: get
+  #         cors:
+  #           origin: ${self:custom.secrets.ALLOWED_ORIGIN}
+  #           allowCredentials: "true"

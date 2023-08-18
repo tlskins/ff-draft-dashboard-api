@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -21,19 +23,11 @@ func Handler(ctx context.Context) (Response, error) {
 	client := p.NewHttpClient()
 
 	// get espn ranks
-	out := t.EspnPlayersResp{}
-	if err := p.HttpRequest(client, "GET", p.EspnApiUrl, p.EspnQueryHeader(350, 0), nil, &out); err != nil {
-		return Response{StatusCode: 404}, err
+	espnPlayers, err := p.GetEspnPlayersForYear(client, 2023)
+	if err != nil {
+		return Response{StatusCode: http.StatusInternalServerError}, err
 	}
-	players := []*t.Player{}
-	for i, p := range out.Players {
-		player := p.ToPlayer()
-		if player.Position == t.NoPosition {
-			continue
-		}
-		player.EspnAdp = i + 1
-		players = append(players, player)
-	}
+	fmt.Printf("found %v espn players\n", len(espnPlayers))
 
 	// get fpros ranks
 	fprosOut, err := p.HttpHtmlRequest(client, "GET", p.FProsApiUrl, map[string][]string{}, nil)
@@ -52,7 +46,7 @@ func Handler(ctx context.Context) (Response, error) {
 
 	for _, p := range fprosResp.Players {
 		matchName := t.MatchName(p.PlayerName)
-		player := t.FindPlayer(players, matchName)
+		player := t.FindPlayer(espnPlayers, matchName)
 		if player == nil {
 			player = p.ToPlayer()
 			players = append(players, player)

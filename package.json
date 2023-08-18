@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "serverless-go-build": "^0.0.6"
+  }
+}

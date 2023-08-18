@@ -18,6 +18,7 @@ const (
 type ESPNTeam int
 
 const (
+	EspnFA  ESPNTeam = 0
 	EspnATL ESPNTeam = 1
 	EspnBUF ESPNTeam = 2
 	EspnCHI ESPNTeam = 3
@@ -60,18 +61,25 @@ type EspnPlayer struct {
 }
 
 type EspnPlayerProfile struct {
-	Id                int           `json:"id"`
-	DefaultPositionId ESPNPosition  `json:"defaultPositionId"`
-	EligibleSlots     []int         `json:"eligibleSlots"`
-	FirstName         string        `json:"firstName"`
-	LastName          string        `json:"lastName"`
-	FullName          string        `json:"fullName"`
-	Injured           bool          `json:"injured"`
-	InjuryStatus      string        `json:"injuryStatus"`
-	ProTeamId         ESPNTeam      `json:"proTeamId"`
-	LastNewsDate      int           `json:"lastNewsDate"`
-	SeasonOutlook     string        `json:"seasonOutlook"`
-	Ranks             *ESPNRankings `json:"draftRanksByRankType"`
+	Id                int                  `json:"id"`
+	DefaultPositionId ESPNPosition         `json:"defaultPositionId"`
+	EligibleSlots     []int                `json:"eligibleSlots"`
+	FirstName         string               `json:"firstName"`
+	LastName          string               `json:"lastName"`
+	FullName          string               `json:"fullName"`
+	Injured           bool                 `json:"injured"`
+	InjuryStatus      string               `json:"injuryStatus"`
+	ProTeamId         ESPNTeam             `json:"proTeamId"`
+	LastNewsDate      int                  `json:"lastNewsDate"`
+	SeasonOutlook     string               `json:"seasonOutlook"`
+	Ranks             *ESPNRankings        `json:"draftRanksByRankType"`
+	Ownership         *EspnPlayerOwnership `json:"ownership"`
+}
+
+type EspnPlayerOwnership struct {
+	AvgDraftPos          float64 `json:"averageDraftPosition"`
+	AvgDraftPosPctChange float64 `json:"averageDraftPositionPercentChange"`
+	PercentOwned         float64 `json:"percentOwned"`
 }
 
 type ESPNRankings struct {
@@ -102,6 +110,8 @@ func (p EspnPlayer) Position() Position {
 
 func (p EspnPlayer) Team() (out string) {
 	switch p.Profile.ProTeamId {
+	case EspnFA:
+		return "FA"
 	case EspnATL:
 		return "ATL"
 	case EspnBUF:

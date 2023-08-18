@@ -1,6 +1,8 @@
 package parsers
 
 import (
+	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -79,4 +81,201 @@ func ParseHarrisRanks(url string, pos t.Position, currId int, players []*t.Playe
 
 	c.Visit(url)
 	return players, currId
+}
+
+func ParseHarrisName(name string) (fName, lName string) {
+	nameParts := strings.Split(name, " ")
+	fName = nameParts[0]
+	lName = strings.Join(nameParts[1:], " ")
+
+	return
+}
+
+func ParseHarrisTeam(team string) (out string) {
+	switch team {
+	case "PHI":
+		return "PHL"
+	default:
+		return team
+	}
+}
+
+func HarrisPlayerPrimaryKey(player *t.HarrisPlayer) string {
+	alphaRgx := regexp.MustCompile("[^a-zA-Z]+")
+	nameKey := strings.ToUpper(alphaRgx.ReplaceAllString(player.Name, ""))
+	return fmt.Sprintf("%s-%s-%s", nameKey, strings.ToUpper(player.Team), strings.ToUpper(player.Position))
+}
+
+func ParsePlayersForPath(pos, urlPath string, isRankByType bool) (players []*t.HarrisPlayer) {
+	players = []*t.HarrisPlayer{}
+	playersMap := map[string]*t.HarrisPlayer{}
+	c := colly.NewCollector()
+
+	c.OnHTML("body", func(bodyEl *colly.HTMLElement) {
+		bodyEl.ForEach("table", func(idx int, tableEl *colly.HTMLElement) {
+			var isPpr *int // -1 no, 1 yes, 0 both
+			if !isRankByType {
+				val := 0
+				isPpr = &val
+			}
+
+			tableEl.ForEach("tr", func(idx int, rowEl *colly.HTMLElement) {
+				newPlayer := t.HarrisPlayer{Position: pos}
+				playerFound := false
+				var rank int
+
+				rowEl.ForEach("td", func(idx int, tdEl *colly.HTMLElement) {
+					cellText := tdEl.Text
+
+					// determine ranking type
+					if isPpr == nil && isRankByType {
+						if strings.Contains(strings.ToLower(cellText), "standard") {
+							val := -1
+							isPpr = &val
+						} else if strings.Contains(strings.ToLower(cellText), "ppr") {
+							val := 1
+							isPpr = &val
+						}
+					} else if isPpr != nil { // if ranking type is determined start tracking players
+						if idx == 0 {
+							// ranking
+							var rankErr error
+							rank, rankErr = strconv.Atoi(cellText)
+							if rankErr == nil {
+								playerFound = true
+							}
+						} else if idx == 1 {
+							// name
+							newPlayer.Name = cellText
+							newPlayer.FirstName, newPlayer.LastName = ParseHarrisName(newPlayer.Name)
+						} else if idx == 2 {
+							// team
+							newPlayer.Team = ParseHarrisTeam(cellText)
+						}
+					}
+				})
+
+				// player parsing complete
+				// fmt.Sprintf("found %v, ppr %v, rank %v\n", playerFound, isPpr, rank)
+				if playerFound && isPpr != nil && rank > 0 {
+					newPlayer.Id = HarrisPlayerPrimaryKey(&newPlayer)
+
+					// get player to update
+					currPlayer := &newPlayer
+					existPlayer := playersMap[newPlayer.Id]
+					if existPlayer != nil {
+						currPlayer = existPlayer
+					}
+
+					// set rank
+					if *isPpr == 1 || *isPpr == 0 {
+						currPlayer.PPRRank = rank
+					}
+					if *isPpr == -1 || *isPpr == 0 {
+						currPlayer.StdRank = rank
+					}
+
+					// is a new player add to trackers
+					if existPlayer == nil {
+						playersMap[newPlayer.Id] = &newPlayer
+						players = append(players, &newPlayer)
+					}
+				}
+			})
+		})
+	})
+	c.Visit(fmt.Sprintf("https://www.harrisfootball.com/%s", urlPath))
+
+	return
+}
+
+func ParseHarrisRanksV2(year int) (out []*t.HarrisPlayer) {
+	posToPathMap := map[string]string{
+		"QB": "ranks-draft",
+		"RB": "rb-ranks-draft",
+		"WR": "wr-ranks-draft",
+		"TE": "te-ranks-draft",
+	}
+	posToRankTypeMap := map[string]bool{
+		"QB": false,
+		"RB": true,
+		"WR": true,
+		"TE": false,
+	}
+	out = []*t.HarrisPlayer{}
+	for pos, urlPath := range posToPathMap {
+		posPlayers := ParsePlayersForPath(pos, urlPath, posToRankTypeMap[pos])
+		out = append(out, posPlayers...)
+	}
+
+	return
+}
+
+func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t.EspnPlayer) (out []*t.HarrisEspnPlayerMatch) {
+	out = []*t.HarrisEspnPlayerMatch{}
+	// build harris lookups
+	harrisMap := map[string]*t.HarrisPlayer{}
+	harrisMatched := map[string]bool{}
+	harrisTeamPosLookup := map[string]map[string][]*t.HarrisPlayer{}
+	for _, harrisPlayer := range harrisPlayers {
+		harrisMap[harrisPlayer.Id] = harrisPlayer
+		team := harrisPlayer.Team
+		pos := harrisPlayer.Position
+		if harrisTeamPosLookup[team] == nil {
+			harrisTeamPosLookup[team] = make(map[string][]*t.HarrisPlayer)
+		}
+		if harrisTeamPosLookup[team][pos] == nil {
+			harrisTeamPosLookup[team][pos] = []*t.HarrisPlayer{}
+		}
+		harrisTeamPosLookup[team][pos] = append(harrisTeamPosLookup[team][pos], harrisPlayer)
+	}
+
+	// match espn to harris players
+	for _, espnPlayer := range espnPlayers {
+		if espnPlayer.Position() == t.DST || espnPlayer.Position() == t.NoPosition {
+			continue
+		}
+		playerMatch := &t.HarrisEspnPlayerMatch{Espn: espnPlayer}
+		out = append(out, playerMatch)
+
+		alphaRgx := regexp.MustCompile("[^a-zA-Z]+")
+		nameKey := strings.ToUpper(espnPlayer.Profile.FullName)
+		nameKey, _ = strings.CutSuffix(nameKey, " JR.")
+		nameKey, _ = strings.CutSuffix(nameKey, " III")
+		nameKey = alphaRgx.ReplaceAllString(nameKey, "")
+		pos := string(espnPlayer.Position())
+		team := espnPlayer.Team()
+
+		var matchedHarrisPlayer *t.HarrisPlayer
+		// primary match via direct user lookup
+		primaryHarrisKey := fmt.Sprintf("%s-%s-%s", nameKey, team, pos)
+		if harrisMap[primaryHarrisKey] != nil {
+			harrisMatched[primaryHarrisKey] = true
+			matchedHarrisPlayer = harrisMap[primaryHarrisKey]
+		} else {
+			// secondary match by Levenshtein distance algorithm
+			isSecondaryMatch := false
+			for _, harrisPlayer := range harrisTeamPosLookup[team][pos] {
+				if harrisMatched[harrisPlayer.Id] {
+					continue
+				}
+				diffScore := StringDiffScore(primaryHarrisKey, harrisPlayer.Id)
+				log.Printf("\tdiff score: %v %s\n", diffScore, harrisPlayer.Name)
+				if diffScore <= 5 {
+					isSecondaryMatch = true
+					log.Printf("\tMatching: %s and %s with\n", espnPlayer.Profile.FullName, harrisPlayer.Name)
+					matchedHarrisPlayer = harrisPlayer
+				}
+			}
+
+			if !isSecondaryMatch {
+				log.Printf("NOT MATCHED %s %s %v\n", primaryHarrisKey, espnPlayer.Profile.FullName, espnPlayer.Profile.Ranks.Standard.Rank)
+			}
+		}
+		if matchedHarrisPlayer != nil {
+			playerMatch.Harris = matchedHarrisPlayer
+		}
+	}
+
+	return
 }

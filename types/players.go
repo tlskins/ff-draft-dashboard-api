@@ -12,6 +12,7 @@ const (
 	RB         Position = "RB"
 	WR         Position = "WR"
 	TE         Position = "TE"
+	DST        Position = "DST"
 	NoPosition Position = ""
 )
 
@@ -25,11 +26,11 @@ type Player struct {
 	Team      string   `json:"team"`
 	Tier      string   `json:"tier"`
 
-	CustomStdRank  int `json:"customStdRank,omitempty"`
-	CustomPprRank  int `json:"customPprRank,omitempty"`
-	EspnOvrPprRank int `json:"espnOvrPprRank,omitempty"`
-	EspnOvrStdRank int `json:"espnOvrStdRank,omitempty"`
-	EspnAdp        int `json:"espnAdp,omitempty"`
+	CustomStdRank  int     `json:"customStdRank,omitempty"`
+	CustomPprRank  int     `json:"customPprRank,omitempty"`
+	EspnOvrPprRank int     `json:"espnOvrPprRank,omitempty"`
+	EspnOvrStdRank int     `json:"espnOvrStdRank,omitempty"`
+	EspnAdp        float64 `json:"espnAdp,omitempty"`
 }
 
 func CleanName(name string) (out string) {

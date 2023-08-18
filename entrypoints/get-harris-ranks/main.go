@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -17,25 +20,30 @@ type Response events.APIGatewayProxyResponse
 
 func Handler(ctx context.Context) (Response, error) {
 	client := p.NewHttpClient()
-	out := t.EspnPlayersResp{}
-	if err := p.HttpRequest(client, "GET", p.EspnApiUrl, p.EspnQueryHeader(250, 0), nil, &out); err != nil {
-		return Response{StatusCode: 404}, err
+
+	espnPlayers, err := p.GetEspnPlayersForYear(client, 2023)
+	if err != nil {
+		return Response{StatusCode: http.StatusInternalServerError}, err
 	}
+	fmt.Printf("found %v espn players\n", len(espnPlayers))
+	harrisPlayers := p.ParseHarrisRanksV2(2023)
+	fmt.Printf("found %v harris players\n", len(harrisPlayers))
+
+	matchedPlayers := p.MatchHarrisAndEspnPlayers(harrisPlayers, espnPlayers)
+	unmatched := 0
 	players := []*t.Player{}
-	for i, p := range out.Players {
-		player := p.ToPlayer()
-		if player.Position == t.NoPosition {
-			continue
+	for _, match := range matchedPlayers {
+		player, err := match.ToPlayer()
+		if err != nil {
+			return Response{StatusCode: http.StatusInternalServerError}, err
 		}
-		player.EspnAdp = i + 1
+		if match.Harris == nil || match.Espn == nil {
+			unmatched += 1
+			log.Printf("Unfound: %s %s %s: %v %v\n", player.Name, player.Position, player.Team, player.EspnOvrStdRank, player.CustomStdRank)
+		}
 		players = append(players, player)
 	}
-
-	currId := 1
-	players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/ranks-draft", t.QB, currId, players)
-	players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/wr-ranks-draft", t.WR, currId, players)
-	players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/rb-ranks-draft", t.RB, currId, players)
-	players, currId = p.ParseHarrisRanks("https://www.harrisfootball.com/te-ranks-draft", t.TE, currId, players)
+	fmt.Printf("Unmatched %v\n", unmatched)
 
 	var buf bytes.Buffer
 

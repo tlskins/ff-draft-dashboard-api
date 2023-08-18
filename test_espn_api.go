@@ -9,10 +9,9 @@ import (
 
 func main() {
 	client := p.NewHttpClient()
-
-	players, err := p.GetEspnPlayersForYear(client, 2023)
-	if err != nil {
+	out := map[string]interface{}{}
+	if err := p.HttpRequest(client, "GET", p.GetEspnApiUrl(2023), p.EspnQueryHeader(350, 0), nil, &out); err != nil {
 		log.Fatal(err)
 	}
-	spew.Dump(players[0])
+	spew.Dump(out)
 }
