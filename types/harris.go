@@ -27,15 +27,16 @@ func (m HarrisEspnPlayerMatch) ToPlayer() (out *Player, err error) {
 	}
 	if m.Espn != nil {
 		out = &Player{
-			Id:             strconv.Itoa(m.Espn.Id),
-			FirstName:      m.Espn.Profile.FirstName,
-			LastName:       m.Espn.Profile.LastName,
-			Name:           m.Espn.Profile.FullName,
-			Position:       m.Espn.Position(),
-			Team:           string(m.Espn.Position()),
-			EspnOvrStdRank: m.Espn.Profile.Ranks.Standard.Rank,
-			EspnOvrPprRank: m.Espn.Profile.Ranks.PPR.Rank,
-			SeasonStats:    []*Stats{},
+			Id:                strconv.Itoa(m.Espn.Id),
+			FirstName:         m.Espn.Profile.FirstName,
+			LastName:          m.Espn.Profile.LastName,
+			Name:              m.Espn.Profile.FullName,
+			Position:          m.Espn.Position(),
+			Team:              string(m.Espn.Position()),
+			EspnOvrStdRank:    m.Espn.Profile.Ranks.Standard.Rank,
+			EspnOvrPprRank:    m.Espn.Profile.Ranks.PPR.Rank,
+			EspnPlayerOutlook: m.Espn.Profile.SeasonOutlook,
+			SeasonStats:       []*Stats{},
 		}
 		if m.Espn.Profile.Ownership != nil {
 			out.EspnAdp = m.Espn.Profile.Ownership.AvgDraftPos

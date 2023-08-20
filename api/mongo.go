@@ -5,31 +5,42 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 var session *mgo.Session
 var _dbName string
 
-func Init(host, user, pwd, dbname string) error {
+func Init(host, user, pwd, dbname string, replicas int) error {
 	if user != "" {
-		return InitCluster(host, user, pwd, dbname)
+		return InitCluster(host, user, pwd, dbname, replicas)
 	} else {
 		return InitDev(host, dbname)
 	}
 }
 
-func InitCluster(host, user, pwd, dbname string) error {
+func InitCluster(host, user, pwd, dbname string, replicas int) error {
 	_dbName = dbname
 	hostParts := strings.Split(host, "-")
 	hostPre := hostParts[0]
 	hostSuff := hostParts[1]
 	hosts := []string{
 		fmt.Sprintf("%s-shard-00-00-%s:27017", hostPre, hostSuff),
-		fmt.Sprintf("%s-shard-00-01-%s:27017", hostPre, hostSuff),
-		fmt.Sprintf("%s-shard-00-02-%s:27017", hostPre, hostSuff),
+		// fmt.Sprintf("%s-shard-00-01-%s:27017", hostPre, hostSuff),
+		// fmt.Sprintf("%s-shard-00-02-%s:27017", hostPre, hostSuff),
+	}
+	i := 1
+	for i <= replicas {
+		replicaStr := strconv.Itoa(i)
+		if i <= 9 {
+			replicaStr = "0" + replicaStr
+		}
+		hosts = append(hosts, fmt.Sprintf("%s-shard-00-%s-%s:27017", hostPre, replicaStr, hostSuff))
+		i++
 	}
 
 	var err error
@@ -58,17 +69,14 @@ func InitDev(host, dbname string) error {
 	return nil
 }
 
-func NewClientV2(host, user, pwd string) (*mgo.Session, error) {
+func NewClientV2(hostPre, hostSuff, user, pwd string) (*mgo.Session, error) {
 	if user == "" {
-		return mgo.Dial(host)
+		return mgo.Dial(hostPre + hostSuff)
 	} else {
-		hostParts := strings.Split(host, "-")
-		hostPre := hostParts[0]
-		hostSuff := hostParts[1]
 		hosts := []string{
-			fmt.Sprintf("%s-shard-00-00.%s:27017", hostPre, hostSuff),
-			fmt.Sprintf("%s-shard-00-01.%s:27017", hostPre, hostSuff),
-			fmt.Sprintf("%s-shard-00-02.%s:27017", hostPre, hostSuff),
+			fmt.Sprintf("ac-%s-shard-00-00.%s:27017", hostPre, hostSuff),
+			fmt.Sprintf("ac-%s-shard-00-01.%s:27017", hostPre, hostSuff),
+			fmt.Sprintf("ac-%s-shard-00-02.%s:27017", hostPre, hostSuff),
 		}
 
 		dialInfo := &mgo.DialInfo{
@@ -95,12 +103,28 @@ type IdGetter interface {
 	GetId() interface{}
 }
 
-func Insert(c *mgo.Collection, result, id, data interface{}) (err error) {
-	if err = c.Insert(data); err != nil {
-		return
+func Insert(c *mgo.Collection, result, data interface{}) error {
+	var err error
+	if result == nil {
+		err = c.Insert(data)
+	} else {
+		change := mgo.Change{
+			Update:    data,
+			ReturnNew: true,
+			// Upsert:    true,
+		}
+		if ider, ok := data.(IdGetter); ok {
+			_, err = c.Find(M{"_id": ider.GetId()}).Apply(change, result)
+		} else {
+			_, err = c.Find(M{"_id": bson.NewObjectId()}).Apply(change, result)
+		}
 	}
-	err = c.FindId(id).One(result)
-	return
+	return err
+}
+
+func InsertV2(c *mgo.Collection, result, data interface{}, id string) error {
+	_, err := c.Upsert(M{"_id": id}, data)
+	return err
 }
 
 func UpsertMany(c *mgo.Collection, data interface{}) (err error) {

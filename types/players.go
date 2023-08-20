@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 type Position string
@@ -29,17 +30,20 @@ type Player struct {
 	Team      string   `json:"team"`
 	Tier      string   `json:"tier"`
 
-	CustomStdRank  int     `json:"customStdRank,omitempty"`
-	CustomPprRank  int     `json:"customPprRank,omitempty"`
-	EspnOvrPprRank int     `json:"espnOvrPprRank,omitempty"`
-	EspnOvrStdRank int     `json:"espnOvrStdRank,omitempty"`
-	EspnAdp        float64 `json:"espnAdp,omitempty"`
+	CustomStdRank     int     `json:"customStdRank,omitempty"`
+	CustomPprRank     int     `json:"customPprRank,omitempty"`
+	EspnOvrPprRank    int     `json:"espnOvrPprRank,omitempty"`
+	EspnOvrStdRank    int     `json:"espnOvrStdRank,omitempty"`
+	EspnAdp           float64 `json:"espnAdp,omitempty"`
+	EspnPlayerOutlook string  `json:"espnPlayerOutlook,omitempty"`
 
 	// stats
 	SeasonStats []*Stats `json:"seasonStats"`
 	LastYrTier  float64  `json:"lastYrTier"`
 	StdRankTier int      `json:"stdRankTier"`
 	PprRankTier int      `json:"pprRankTier"`
+	Pros        string   `json:"pros"`
+	Cons        string   `json:"cons"`
 }
 
 func MinInt(x, y int) int {
@@ -321,4 +325,13 @@ func CalcAvgStatsForPos(posPlayers []*Player, numTeams, year int, pos Position) 
 	}
 
 	return
+}
+
+type PlayerReport struct {
+	Id        string    `bson:"_id" json:"id"`
+	CreatedAt time.Time `bson:"crAt" json:"createdAt"`
+	Name      string    `bson:"nm" json:"name"`
+	Position  Position  `bson:"pos" json:"position"`
+	Pros      string    `bson:"pros" json:"pros"`
+	Cons      string    `bson:"cons" json:"cons"`
 }
