@@ -61,19 +61,51 @@ type EspnPlayer struct {
 }
 
 type EspnPlayerProfile struct {
-	Id                int                  `json:"id"`
-	DefaultPositionId ESPNPosition         `json:"defaultPositionId"`
-	EligibleSlots     []int                `json:"eligibleSlots"`
-	FirstName         string               `json:"firstName"`
-	LastName          string               `json:"lastName"`
-	FullName          string               `json:"fullName"`
-	Injured           bool                 `json:"injured"`
-	InjuryStatus      string               `json:"injuryStatus"`
-	ProTeamId         ESPNTeam             `json:"proTeamId"`
-	LastNewsDate      int                  `json:"lastNewsDate"`
-	SeasonOutlook     string               `json:"seasonOutlook"`
-	Ranks             *ESPNRankings        `json:"draftRanksByRankType"`
-	Ownership         *EspnPlayerOwnership `json:"ownership"`
+	Id                int                     `json:"id"`
+	DefaultPositionId ESPNPosition            `json:"defaultPositionId"`
+	EligibleSlots     []int                   `json:"eligibleSlots"`
+	FirstName         string                  `json:"firstName"`
+	LastName          string                  `json:"lastName"`
+	FullName          string                  `json:"fullName"`
+	Injured           bool                    `json:"injured"`
+	InjuryStatus      string                  `json:"injuryStatus"`
+	ProTeamId         ESPNTeam                `json:"proTeamId"`
+	LastNewsDate      int                     `json:"lastNewsDate"`
+	SeasonOutlook     string                  `json:"seasonOutlook"`
+	Ranks             *ESPNRankings           `json:"draftRanksByRankType"`
+	Ownership         *EspnPlayerOwnership    `json:"ownership"`
+	StatsBySeason     []*EspnSeasonTotalStats `json:"stats"`
+}
+
+// stats[year]stats.210 = games played
+// stats[year]stats.23 = rush attempts
+// stats[year]stats.24 = rush yards
+// stats[year]stats.25 = rush tds
+// stats[year]stats.41 = recs
+// stats[year]stats.42 = rec yds
+// stats[year]stats.43 = rec tds
+// stats[year]appliedTotal = total fpoints
+// stats[year]appliedAverage = fpoints per game
+type EspnSeasonTotalStats struct {
+	AvgPPGame   float64          `json:"appliedAverage"`
+	TotalPoints float64          `json:"appliedTotal"`
+	Season      int              `json:"seasonId"`
+	Stats       *EspnSeasonStats `json:"stats"`
+}
+
+type EspnSeasonStats struct {
+	GamesPlayed     float64 `json:"210"`
+	RushAttempts    float64 `json:"23"`
+	RushYards       float64 `json:"24"`
+	RushTds         float64 `json:"25"`
+	Recs            float64 `json:"41"`
+	RecYards        float64 `json:"42"`
+	RecTds          float64 `json:"43"`
+	PassAttempts    float64 `json:"0"`
+	PassCompletions float64 `json:"1"`
+	PassYards       float64 `json:"3"`
+	PassTds         float64 `json:"4"`
+	PassInts        float64 `json:"20"`
 }
 
 type EspnPlayerOwnership struct {

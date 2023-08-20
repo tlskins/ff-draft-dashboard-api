@@ -211,8 +211,11 @@ func ParseHarrisRanksV2(year int) (out []*t.HarrisPlayer) {
 	return
 }
 
-func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t.EspnPlayer) (out []*t.HarrisEspnPlayerMatch) {
-	out = []*t.HarrisEspnPlayerMatch{}
+func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t.EspnPlayer) (out []*t.Player, unmatched []*t.Player, err error) {
+	out = []*t.Player{}
+	matches := []*t.HarrisEspnPlayerMatch{}
+	unmatched = []*t.Player{}
+
 	// build harris lookups
 	harrisMap := map[string]*t.HarrisPlayer{}
 	harrisMatched := map[string]bool{}
@@ -236,7 +239,7 @@ func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t
 			continue
 		}
 		playerMatch := &t.HarrisEspnPlayerMatch{Espn: espnPlayer}
-		out = append(out, playerMatch)
+		matches = append(matches, playerMatch)
 
 		alphaRgx := regexp.MustCompile("[^a-zA-Z]+")
 		nameKey := strings.ToUpper(espnPlayer.Profile.FullName)
@@ -275,6 +278,18 @@ func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t
 		if matchedHarrisPlayer != nil {
 			playerMatch.Harris = matchedHarrisPlayer
 		}
+	}
+
+	// convert to players
+	for _, match := range matches {
+		player, err := match.ToPlayer()
+		if err != nil {
+			return out, unmatched, err
+		}
+		if match.Espn == nil || match.Harris == nil {
+			unmatched = append(unmatched, player)
+		}
+		out = append(out, player)
 	}
 
 	return

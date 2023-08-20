@@ -35,9 +35,35 @@ func (m HarrisEspnPlayerMatch) ToPlayer() (out *Player, err error) {
 			Team:           string(m.Espn.Position()),
 			EspnOvrStdRank: m.Espn.Profile.Ranks.Standard.Rank,
 			EspnOvrPprRank: m.Espn.Profile.Ranks.PPR.Rank,
+			SeasonStats:    []*Stats{},
 		}
 		if m.Espn.Profile.Ownership != nil {
 			out.EspnAdp = m.Espn.Profile.Ownership.AvgDraftPos
+		}
+		if m.Espn.Profile.StatsBySeason != nil {
+			for _, espnSsnStats := range m.Espn.Profile.StatsBySeason {
+				ssnStats := &Stats{
+					PPG:    espnSsnStats.AvgPPGame,
+					MinPPG: espnSsnStats.AvgPPGame,
+					MaxPPG: espnSsnStats.AvgPPGame,
+					Year:   espnSsnStats.Season,
+				}
+				if espnSsnStats.Stats != nil {
+					ssnStats.GamesPlayed = espnSsnStats.Stats.GamesPlayed
+					ssnStats.RushAttempts = espnSsnStats.Stats.RushAttempts
+					ssnStats.RushYards = espnSsnStats.Stats.RushYards
+					ssnStats.RushTds = espnSsnStats.Stats.RushTds
+					ssnStats.Recs = espnSsnStats.Stats.Recs
+					ssnStats.RecYards = espnSsnStats.Stats.RecYards
+					ssnStats.RecTds = espnSsnStats.Stats.RecTds
+					ssnStats.PassAttempts = espnSsnStats.Stats.PassAttempts
+					ssnStats.PassCompletions = espnSsnStats.Stats.PassCompletions
+					ssnStats.PassYards = espnSsnStats.Stats.PassYards
+					ssnStats.PassTds = espnSsnStats.Stats.PassTds
+					ssnStats.PassInts = espnSsnStats.Stats.PassInts
+				}
+				out.SeasonStats = append(out.SeasonStats, ssnStats)
+			}
 		}
 	} else {
 		out = &Player{

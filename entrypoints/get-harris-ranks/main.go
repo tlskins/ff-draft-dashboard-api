@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 
 	p "github.com/my_projects/ff-draft-dashboard-api/parsers"
-	t "github.com/my_projects/ff-draft-dashboard-api/types"
 )
 
 type Response events.APIGatewayProxyResponse
@@ -29,21 +27,10 @@ func Handler(ctx context.Context) (Response, error) {
 	harrisPlayers := p.ParseHarrisRanksV2(2023)
 	fmt.Printf("found %v harris players\n", len(harrisPlayers))
 
-	matchedPlayers := p.MatchHarrisAndEspnPlayers(harrisPlayers, espnPlayers)
-	unmatched := 0
-	players := []*t.Player{}
-	for _, match := range matchedPlayers {
-		player, err := match.ToPlayer()
-		if err != nil {
-			return Response{StatusCode: http.StatusInternalServerError}, err
-		}
-		if match.Harris == nil || match.Espn == nil {
-			unmatched += 1
-			log.Printf("Unfound: %s %s %s: %v %v\n", player.Name, player.Position, player.Team, player.EspnOvrStdRank, player.CustomStdRank)
-		}
-		players = append(players, player)
+	players, _, err := p.MatchHarrisAndEspnPlayers(harrisPlayers, espnPlayers)
+	if err != nil {
+		return Response{StatusCode: http.StatusInternalServerError}, err
 	}
-	fmt.Printf("Unmatched %v\n", unmatched)
 
 	var buf bytes.Buffer
 

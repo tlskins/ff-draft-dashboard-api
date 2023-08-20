@@ -14,5 +14,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	spew.Dump(players[0])
+
+	for _, player := range players {
+		if player.Id == 4047646 {
+			spew.Dump(player)
+		}
+	}
 }
