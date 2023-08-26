@@ -52,6 +52,51 @@ func (s *Store) Close() {
 	s.client.Disconnect(s.ctx)
 }
 
+func (s Store) FindOne(c *mongo.Collection, query M, out interface{}) (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	result := c.FindOne(ctx, query)
+	if err = result.Err(); err != nil {
+		out = nil
+		return
+	}
+	err = result.Decode(out)
+
+	return
+}
+
+func (s Store) Find(c *mongo.Collection, query M, out interface{}) (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var cur *mongo.Cursor
+	if cur, err = c.Find(ctx, query); err != nil {
+		return
+	}
+	err = cur.All(ctx, out)
+
+	return
+}
+
+func (s Store) Upsert(c *mongo.Collection, query M, update M, out interface{}) (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	upsertTrue := true
+	upsertOpts := &options.UpdateOptions{Upsert: &upsertTrue}
+	if _, err = c.UpdateOne(ctx, query, update, upsertOpts); err != nil {
+		return
+	}
+
+	if out != nil {
+		err = s.FindOne(c, query, out)
+	}
+	return
+}
+
+// app code
+
 func (s *Store) PlayerReportsCol() *mongo.Collection {
 	return s.database.Collection("playerReports")
 }

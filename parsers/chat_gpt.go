@@ -25,7 +25,7 @@ func CalcPlayerReport(player *t.Player, client *chatgpt.Client) (report *t.Playe
 	}
 
 	question := fmt.Sprintf(
-		`Please summarize the following nfl player news with regard to their productivity in the upcoming season. Summaries should be in 5-12 word bullet points organized under 2 sections separated by two new lines \n\n. First section "Pros:" and then "Cons:": %s`,
+		`Please summarize the following nfl player news with regard to their productivity in the upcoming season. Summaries should be bullet points under sections "Pros:" and then "Cons:" and separated by two newlines \n\n. Each bullet must be less than or equal to 10 words": %s`,
 		player.EspnPlayerOutlook,
 	)
 

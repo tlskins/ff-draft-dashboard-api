@@ -23,7 +23,7 @@ func Handler(ctx context.Context) (Response, error) {
 	client := p.NewHttpClient()
 
 	// get espn ranks
-	espnPlayers, err := p.GetEspnPlayersForYear(client, 2023)
+	espnPlayers, err := p.GetEspnPlayersForYear(client, 2023, 350)
 	if err != nil {
 		return Response{StatusCode: http.StatusInternalServerError}, err
 	}

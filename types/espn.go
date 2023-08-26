@@ -60,6 +60,52 @@ type EspnPlayer struct {
 	Profile           *EspnPlayerProfile `json:"player"`
 }
 
+func (p EspnPlayer) ToPlayer() (out *Player) {
+	out = &Player{
+		Id:                strconv.Itoa(p.Id),
+		FirstName:         p.Profile.FirstName,
+		LastName:          p.Profile.LastName,
+		Name:              p.Profile.FullName,
+		Position:          p.Position(),
+		Team:              p.Team(),
+		EspnOvrStdRank:    p.Profile.Ranks.Standard.Rank,
+		EspnOvrPprRank:    p.Profile.Ranks.PPR.Rank,
+		EspnPlayerOutlook: p.Profile.SeasonOutlook,
+		SeasonStats:       []*Stats{},
+	}
+	if p.Profile.Ownership != nil {
+		out.EspnAdp = p.Profile.Ownership.AvgDraftPos
+	}
+	if p.Profile.StatsBySeason != nil {
+		for _, espnSsnStats := range p.Profile.StatsBySeason {
+			ssnStats := &Stats{
+				TotalPoints: espnSsnStats.TotalPoints,
+				PPG:         espnSsnStats.AvgPPGame,
+				MinPPG:      espnSsnStats.AvgPPGame,
+				MaxPPG:      espnSsnStats.AvgPPGame,
+				Year:        espnSsnStats.Season,
+			}
+			if espnSsnStats.Stats != nil {
+				ssnStats.GamesPlayed = espnSsnStats.Stats.GamesPlayed
+				ssnStats.RushAttempts = espnSsnStats.Stats.RushAttempts
+				ssnStats.RushYards = espnSsnStats.Stats.RushYards
+				ssnStats.RushTds = espnSsnStats.Stats.RushTds
+				ssnStats.Recs = espnSsnStats.Stats.Recs
+				ssnStats.RecYards = espnSsnStats.Stats.RecYards
+				ssnStats.RecTds = espnSsnStats.Stats.RecTds
+				ssnStats.PassAttempts = espnSsnStats.Stats.PassAttempts
+				ssnStats.PassCompletions = espnSsnStats.Stats.PassCompletions
+				ssnStats.PassYards = espnSsnStats.Stats.PassYards
+				ssnStats.PassTds = espnSsnStats.Stats.PassTds
+				ssnStats.PassInts = espnSsnStats.Stats.PassInts
+			}
+			out.SeasonStats = append(out.SeasonStats, ssnStats)
+		}
+	}
+
+	return
+}
+
 type EspnPlayerProfile struct {
 	Id                int                     `json:"id"`
 	DefaultPositionId ESPNPosition            `json:"defaultPositionId"`
@@ -213,22 +259,22 @@ func (p EspnPlayer) Team() (out string) {
 	}
 }
 
-func (p EspnPlayer) ToPlayer() (out *Player) {
-	out = &Player{
-		Id:        strconv.Itoa(p.Id),
-		FirstName: p.Profile.FirstName,
-		LastName:  p.Profile.LastName,
-		Name:      p.Profile.FullName,
-		MatchName: MatchName(p.Profile.FullName),
-		Position:  p.Position(),
-		Team:      p.Team(),
-	}
-	if p.Profile.Ranks != nil && p.Profile.Ranks.PPR != nil {
-		out.EspnOvrPprRank = p.Profile.Ranks.PPR.Rank
-	}
-	if p.Profile.Ranks != nil && p.Profile.Ranks.Standard != nil {
-		out.EspnOvrStdRank = p.Profile.Ranks.Standard.Rank
-	}
+// func (p EspnPlayer) ToPlayer() (out *Player) {
+// 	out = &Player{
+// 		Id:        strconv.Itoa(p.Id),
+// 		FirstName: p.Profile.FirstName,
+// 		LastName:  p.Profile.LastName,
+// 		Name:      p.Profile.FullName,
+// 		MatchName: MatchName(p.Profile.FullName),
+// 		Position:  p.Position(),
+// 		Team:      p.Team(),
+// 	}
+// 	if p.Profile.Ranks != nil && p.Profile.Ranks.PPR != nil {
+// 		out.EspnOvrPprRank = p.Profile.Ranks.PPR.Rank
+// 	}
+// 	if p.Profile.Ranks != nil && p.Profile.Ranks.Standard != nil {
+// 		out.EspnOvrStdRank = p.Profile.Ranks.Standard.Rank
+// 	}
 
-	return
-}
+// 	return
+// }

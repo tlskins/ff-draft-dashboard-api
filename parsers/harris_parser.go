@@ -211,9 +211,9 @@ func ParseHarrisRanksV2(year int) (out []*t.HarrisPlayer) {
 	return
 }
 
-func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t.EspnPlayer) (out []*t.Player, unmatched []*t.Player, err error) {
-	out = []*t.Player{}
-	matches := []*t.HarrisEspnPlayerMatch{}
+// mutates input players to include harris ranks
+func AddHarrisRanks(harrisPlayers []*t.HarrisPlayer, players []*t.Player) (unmatched []*t.Player, err error) {
+	matches := []*t.HarrisPlayerMatch{}
 	unmatched = []*t.Player{}
 
 	// build harris lookups
@@ -234,24 +234,25 @@ func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t
 	}
 
 	// match espn to harris players
-	for _, espnPlayer := range espnPlayers {
-		if espnPlayer.Position() == t.DST || espnPlayer.Position() == t.NoPosition {
+	for _, player := range players {
+		if player.Position == t.DST || player.Position == t.NoPosition {
 			continue
 		}
-		playerMatch := &t.HarrisEspnPlayerMatch{Espn: espnPlayer}
+		playerMatch := &t.HarrisPlayerMatch{Player: player}
 		matches = append(matches, playerMatch)
 
 		alphaRgx := regexp.MustCompile("[^a-zA-Z]+")
-		nameKey := strings.ToUpper(espnPlayer.Profile.FullName)
+		nameKey := strings.ToUpper(player.Name)
 		nameKey, _ = strings.CutSuffix(nameKey, " JR.")
 		nameKey, _ = strings.CutSuffix(nameKey, " III")
 		nameKey = alphaRgx.ReplaceAllString(nameKey, "")
-		pos := string(espnPlayer.Position())
-		team := espnPlayer.Team()
+		pos := string(player.Position)
+		team := player.Team
 
 		var matchedHarrisPlayer *t.HarrisPlayer
 		// primary match via direct user lookup
 		primaryHarrisKey := fmt.Sprintf("%s-%s-%s", nameKey, team, pos)
+		fmt.Printf("harriskey: %s\n", primaryHarrisKey)
 		if harrisMap[primaryHarrisKey] != nil {
 			harrisMatched[primaryHarrisKey] = true
 			matchedHarrisPlayer = harrisMap[primaryHarrisKey]
@@ -266,13 +267,13 @@ func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t
 				log.Printf("\tdiff score: %v %s\n", diffScore, harrisPlayer.Name)
 				if diffScore <= 5 {
 					isSecondaryMatch = true
-					log.Printf("\tMatching: %s and %s with\n", espnPlayer.Profile.FullName, harrisPlayer.Name)
+					log.Printf("\tMatching: %s and %s with\n", player.Name, harrisPlayer.Name)
 					matchedHarrisPlayer = harrisPlayer
 				}
 			}
 
 			if !isSecondaryMatch {
-				log.Printf("NOT MATCHED %s %s %v\n", primaryHarrisKey, espnPlayer.Profile.FullName, espnPlayer.Profile.Ranks.Standard.Rank)
+				log.Printf("NOT MATCHED %s %s %v\n", primaryHarrisKey, player.Name, player.EspnOvrStdRank)
 			}
 		}
 		if matchedHarrisPlayer != nil {
@@ -280,16 +281,9 @@ func MatchHarrisAndEspnPlayers(harrisPlayers []*t.HarrisPlayer, espnPlayers []*t
 		}
 	}
 
-	// convert to players
+	// mutate players and add ranks
 	for _, match := range matches {
-		player, err := match.ToPlayer()
-		if err != nil {
-			return out, unmatched, err
-		}
-		if match.Espn == nil || match.Harris == nil {
-			unmatched = append(unmatched, player)
-		}
-		out = append(out, player)
+		match.AddPlayerRank()
 	}
 
 	return

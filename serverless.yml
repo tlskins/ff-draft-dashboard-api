@@ -24,6 +24,10 @@ functions:
     handler: entrypoints/get-harris-ranks/main.go
     environment:
       ALLOWED_ORIGIN: ${self:custom.secrets.ALLOWED_ORIGIN}
+      DRAFT_DASHBOARD_DB_NAME: ${self:custom.secrets.DRAFT_DASHBOARD_DB_NAME}
+      MONGO_USER: ${self:custom.secrets.MONGO_USER}
+      MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
+      MONGO_HOST: ${self:custom.secrets.MONGO_HOST}
     events:
       - http:
           path: harris-ranks
