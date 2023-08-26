@@ -212,7 +212,7 @@ func ParseHarrisRanksV2(year int) (out []*t.HarrisPlayer) {
 }
 
 // mutates input players to include harris ranks
-func AddHarrisRanks(harrisPlayers []*t.HarrisPlayer, players []*t.Player) (unmatched []*t.Player, err error) {
+func AddHarrisRanks(harrisPlayers []*t.HarrisPlayer, players []*t.Player) (unmatched []*t.Player) {
 	matches := []*t.HarrisPlayerMatch{}
 	unmatched = []*t.Player{}
 
@@ -240,22 +240,16 @@ func AddHarrisRanks(harrisPlayers []*t.HarrisPlayer, players []*t.Player) (unmat
 		}
 		playerMatch := &t.HarrisPlayerMatch{Player: player}
 		matches = append(matches, playerMatch)
-
-		alphaRgx := regexp.MustCompile("[^a-zA-Z]+")
-		nameKey := strings.ToUpper(player.Name)
-		nameKey, _ = strings.CutSuffix(nameKey, " JR.")
-		nameKey, _ = strings.CutSuffix(nameKey, " III")
-		nameKey = alphaRgx.ReplaceAllString(nameKey, "")
-		pos := string(player.Position)
 		team := player.Team
+		pos := string(player.Position)
 
 		var matchedHarrisPlayer *t.HarrisPlayer
 		// primary match via direct user lookup
-		primaryHarrisKey := fmt.Sprintf("%s-%s-%s", nameKey, team, pos)
-		fmt.Printf("harriskey: %s\n", primaryHarrisKey)
-		if harrisMap[primaryHarrisKey] != nil {
-			harrisMatched[primaryHarrisKey] = true
-			matchedHarrisPlayer = harrisMap[primaryHarrisKey]
+		playerMatchKey := player.MatchKey()
+		fmt.Printf("harriskey: %s\n", playerMatchKey)
+		if harrisMap[playerMatchKey] != nil {
+			harrisMatched[playerMatchKey] = true
+			matchedHarrisPlayer = harrisMap[playerMatchKey]
 		} else {
 			// secondary match by Levenshtein distance algorithm
 			isSecondaryMatch := false
@@ -263,7 +257,7 @@ func AddHarrisRanks(harrisPlayers []*t.HarrisPlayer, players []*t.Player) (unmat
 				if harrisMatched[harrisPlayer.Id] {
 					continue
 				}
-				diffScore := StringDiffScore(primaryHarrisKey, harrisPlayer.Id)
+				diffScore := StringDiffScore(playerMatchKey, harrisPlayer.Id)
 				log.Printf("\tdiff score: %v %s\n", diffScore, harrisPlayer.Name)
 				if diffScore <= 5 {
 					isSecondaryMatch = true
@@ -273,7 +267,7 @@ func AddHarrisRanks(harrisPlayers []*t.HarrisPlayer, players []*t.Player) (unmat
 			}
 
 			if !isSecondaryMatch {
-				log.Printf("NOT MATCHED %s %s %v\n", primaryHarrisKey, player.Name, player.EspnOvrStdRank)
+				log.Printf("NOT MATCHED %s %s %v\n", playerMatchKey, player.Name, player.EspnOvrStdRank)
 			}
 		}
 		if matchedHarrisPlayer != nil {

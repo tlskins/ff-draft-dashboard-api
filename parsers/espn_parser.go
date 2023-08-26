@@ -1,68 +1,11 @@
 package parsers
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
-	"time"
 
 	t "github.com/my_projects/ff-draft-dashboard-api/types"
-	"github.com/pkg/errors"
 )
-
-func NewHttpClient() *http.Client {
-	return &http.Client{
-		Transport: &http.Transport{
-			IdleConnTimeout:    60 * time.Second,
-			DisableCompression: true,
-		},
-		Timeout: 60 * time.Second,
-	}
-}
-
-func HttpRequest(client *http.Client, method, url string, headers map[string][]string, data, out interface{}) error {
-	var body io.Reader
-	if data != nil {
-		if b, ok := data.([]byte); ok {
-			body = bytes.NewReader(b)
-		} else {
-			if b, err := json.Marshal(data); err == nil {
-				body = bytes.NewReader(b)
-			} else {
-				return errors.New(fmt.Sprintf("Error marshaling request data: %v", err.Error()))
-			}
-		}
-	}
-
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error building http request: %v", err.Error()))
-	}
-	for header, values := range headers {
-		req.Header[header] = values
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error sending http request: %v", err.Error()))
-	}
-
-	if out != nil {
-		b, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return errors.New(fmt.Sprintf("Error reading response body: %v", err.Error()))
-		}
-		if len(b) > 0 {
-			// fmt.Println(string(b))
-			return json.Unmarshal(b, out)
-		}
-	}
-
-	return nil
-}
 
 func GetEspnApiUrl(year int) string {
 	return fmt.Sprintf("https://fantasy.espn.com/apis/v3/games/ffl/seasons/%v/segments/0/leaguedefaults/3?view=kona_player_info", year)

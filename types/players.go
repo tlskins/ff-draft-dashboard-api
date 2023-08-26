@@ -30,6 +30,8 @@ type Player struct {
 
 	CustomStdRank     int     `json:"customStdRank,omitempty"`
 	CustomPprRank     int     `json:"customPprRank,omitempty"`
+	CustomStdOvrRank  int     `json:"customStdOvrRank,omitempty"`
+	CustomPprOvrRank  int     `json:"customPprOvrRank,omitempty"`
 	EspnOvrPprRank    int     `json:"espnOvrPprRank,omitempty"`
 	EspnOvrStdRank    int     `json:"espnOvrStdRank,omitempty"`
 	EspnAdp           float64 `json:"espnAdp,omitempty"`
@@ -50,6 +52,21 @@ func MinInt(x, y int) int {
 		return x
 	}
 	return y
+}
+
+func (p Player) CleanName() string {
+	alphaRgx := regexp.MustCompile("[^a-zA-Z]+")
+	nameKey := strings.ToUpper(p.Name)
+	nameKey, _ = strings.CutSuffix(nameKey, " JR.")
+	nameKey, _ = strings.CutSuffix(nameKey, " III")
+	nameKey, _ = strings.CutSuffix(nameKey, " II")
+	nameKey = alphaRgx.ReplaceAllString(nameKey, "")
+
+	return nameKey
+}
+
+func (p Player) MatchKey() string {
+	return fmt.Sprintf("%s-%s-%s", p.CleanName(), p.Team, p.Position)
 }
 
 // do this on the front end instead bc its based on num of teams

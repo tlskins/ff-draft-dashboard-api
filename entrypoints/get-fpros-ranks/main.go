@@ -1,86 +1,80 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
+	"time"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
+	"github.com/my_projects/ff-draft-dashboard-api/api"
 	p "github.com/my_projects/ff-draft-dashboard-api/parsers"
+	s "github.com/my_projects/ff-draft-dashboard-api/store"
 	t "github.com/my_projects/ff-draft-dashboard-api/types"
 )
 
-type Response events.APIGatewayProxyResponse
+func Handler(ctx context.Context) (api.Response, error) {
+	mongoDbName := os.Getenv("DRAFT_DASHBOARD_DB_NAME")
+	mongoUser := os.Getenv("MONGO_USER")
+	mongoPwd := os.Getenv("MONGO_PWD")
+	mongoHost := os.Getenv("MONGO_HOST")
 
-func Handler(ctx context.Context) (Response, error) {
 	client := p.NewHttpClient()
-
-	// get espn ranks
-	espnPlayers, err := p.GetEspnPlayersForYear(client, 2023, 350)
+	store, err := s.NewStore(mongoDbName, mongoHost, mongoUser, mongoPwd)
 	if err != nil {
-		return Response{StatusCode: http.StatusInternalServerError}, err
+		return api.Response{StatusCode: http.StatusInternalServerError}, err
 	}
-	fmt.Printf("found %v espn players\n", len(espnPlayers))
+	reportsCol := store.PlayerReportsCol()
+	now := time.Now()
+	var year int
+	if year, err = strconv.Atoi(now.Format("2006")); err != nil {
+		return api.Response{StatusCode: http.StatusInternalServerError}, err
+	}
 
-	// get fpros ranks
-	fprosOut, err := p.HttpHtmlRequest(client, "GET", p.FProsApiUrl, map[string][]string{}, nil)
+	// get all espn players
+	players, err := p.GetEspnPlayersForYear(client, year, 350)
 	if err != nil {
-		return Response{StatusCode: 404}, err
+		return api.Response{StatusCode: http.StatusInternalServerError}, err
+	}
+	fmt.Printf("found %v players\n", len(players))
+
+	// get custom ranks
+	fprosPlayers, err := p.GetFprosPlayers(client)
+	if err != nil {
+		return api.Response{StatusCode: http.StatusInternalServerError}, err
+	}
+	p.AddFprosRanks(fprosPlayers, players)
+
+	// fetch all player reports and add to a map
+	playerReports := []*t.PlayerReport{}
+	if err = store.Find(reportsCol, s.M{}, &playerReports); err != nil {
+		return api.Response{StatusCode: http.StatusInternalServerError}, err
+	}
+	playerReportsMap := map[string]*t.PlayerReport{}
+	for _, report := range playerReports {
+		playerReportsMap[report.Id] = report
 	}
 
-	rgx := regexp.MustCompile(`var ecrData = ({.*})`)
-	rs := rgx.FindStringSubmatch(fprosOut)
-	byt := []byte(rs[1])
-
-	fprosResp := t.FproEcrData{}
-	if err := json.Unmarshal(byt, &fprosResp); err != nil {
-		return Response{StatusCode: 404}, err
-	}
-
-	for _, p := range fprosResp.Players {
-		matchName := t.MatchName(p.PlayerName)
-		player := t.FindPlayer(espnPlayers, matchName)
-		if player == nil {
-			player = p.ToPlayer()
-			players = append(players, player)
-		} else {
-			player.CustomPprRank = p.RankEcr
-			player.CustomStdRank = p.RankEcr
-			if player.Tier == "" {
-				player.Tier = strconv.Itoa(p.Tier)
-			}
+	// add player report data
+	for _, player := range players {
+		report := playerReportsMap[player.Id]
+		if report != nil {
+			player.AddPlayerReport(report)
 		}
 	}
 
-	var buf bytes.Buffer
+	// calc stats by num teams
+	posStatsByNumTeamByYear := p.CalcAllStats(players, year)
 
-	body, err := json.Marshal(map[string]interface{}{"players": players})
-	if err != nil {
-		return Response{StatusCode: 404}, err
-	}
-	json.HTMLEscape(&buf, body)
+	resp, err := api.SuccessResp(
+		map[string]interface{}{"players": players, "posStatsByNumTeamByYear": posStatsByNumTeamByYear},
+		os.Getenv("ALLOWED_ORIGIN"),
+	)
 
-	resp := Response{
-		StatusCode:      200,
-		IsBase64Encoded: false,
-		Body:            buf.String(),
-		Headers: map[string]string{
-			"Content-Type":                     "application/json",
-			"Access-Control-Allow-Origin":      os.Getenv("ALLOWED_ORIGIN"),
-			"Access-Control-Allow-Credentials": "true",
-			"Access-Control-Allow-Methods":     "OPTIONS,POST,GET",
-			"Access-Control-Allow-Headers":     "Content-Type",
-		},
-	}
-
-	return resp, nil
+	return resp, err
 }
 
 func main() {

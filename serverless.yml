@@ -36,14 +36,18 @@ functions:
             origin: ${self:custom.secrets.ALLOWED_ORIGIN}
             allowCredentials: "true"
 
-  # get-fpros-ranks:
-  #   handler: entrypoints/get-fpros-ranks/main.go
-  #   environment:
-  #     ALLOWED_ORIGIN: ${self:custom.secrets.ALLOWED_ORIGIN}
-  #   events:
-  #     - http:
-  #         path: fpros-ranks
-  #         method: get
-  #         cors:
-  #           origin: ${self:custom.secrets.ALLOWED_ORIGIN}
-  #           allowCredentials: "true"
+  get-fpros-ranks:
+    handler: entrypoints/get-fpros-ranks/main.go
+    environment:
+      ALLOWED_ORIGIN: ${self:custom.secrets.ALLOWED_ORIGIN}
+      DRAFT_DASHBOARD_DB_NAME: ${self:custom.secrets.DRAFT_DASHBOARD_DB_NAME}
+      MONGO_USER: ${self:custom.secrets.MONGO_USER}
+      MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
+      MONGO_HOST: ${self:custom.secrets.MONGO_HOST}
+    events:
+      - http:
+          path: fpros-ranks
+          method: get
+          cors:
+            origin: ${self:custom.secrets.ALLOWED_ORIGIN}
+            allowCredentials: "true"

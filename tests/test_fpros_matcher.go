@@ -18,13 +18,12 @@ func main() {
 	}
 	fmt.Printf("%v players\n", len(players))
 
-	harrisPlayers := p.ParseHarrisRanksV2(currYear)
-	fmt.Printf("%v harris players\n", len(harrisPlayers))
-
-	unmatched, err := p.AddHarrisRanks(harrisPlayers, players)
+	fprosPlayers, err := p.GetFprosPlayers(client)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+
+	unmatched := p.AddFprosRanks(fprosPlayers, players)
 	for _, player := range unmatched {
 		log.Printf("Unfound: %s %s %s: %v %v\n", player.Name, player.Position, player.Team, player.EspnOvrStdRank, player.CustomStdRank)
 	}
